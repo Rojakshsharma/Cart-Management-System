@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 import Sidebar from "@/components/Filter";
@@ -10,7 +11,7 @@ import { useCart } from "@/Context/CartContext";
 const categoriesList = ["Electronics", "Clothing", "Home", "Others"];
 const brandsList = ["Nike", "Samsung", "LG", "Puma"];
 
-export default function Home() {
+function HomeContent() {
   const { searchTerm } = useCart();
 
   const searchParams = useSearchParams();
@@ -36,7 +37,6 @@ export default function Home() {
     priceFromUrl ? Number(priceFromUrl.split("-")[1]) : 1000
   );
 
-
   // Update URL when any filter changes
   useEffect(() => {
     const params = new URLSearchParams();
@@ -55,7 +55,7 @@ export default function Home() {
     }
 
     router.push(`${pathname}?${params.toString()}`);
-  }, [selectedCategories, selectedBrands, priceRange, minPrice, searchTerm]);
+  }, [selectedCategories, selectedBrands, priceRange, minPrice, searchTerm, router, pathname]);
 
   // Filtering logic
   const filteredProducts = useMemo(() => {
@@ -107,5 +107,13 @@ export default function Home() {
         <ProductGrid products={filteredProducts} />
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
