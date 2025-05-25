@@ -1,103 +1,111 @@
-import Image from "next/image";
+"use client";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+
+import Sidebar from "@/components/Filter";
+import ProductGrid from "@/components/productgrid";
+import products from "@/assets/cartdata";
+import { useCart } from "@/Context/CartContext";
+
+const categoriesList = ["Electronics", "Clothing", "Home", "Others"];
+const brandsList = ["Nike", "Samsung", "LG", "Puma"];
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { searchTerm } = useCart();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const categoryFromUrl = searchParams.get("category");
+  const brandFromUrl = searchParams.get("brand");
+  const priceFromUrl = searchParams.get("price"); 
+  const searchFromUrl = searchParams.get("search");
+
+  const [selectedCategories, setSelectedCategories] = useState(
+    categoryFromUrl ? [categoryFromUrl] : []
+  );
+  const [selectedBrands, setSelectedBrands] = useState(
+    brandFromUrl ? [brandFromUrl] : []
+  );
+
+  const [minPrice, setMinPrice] = useState(
+    priceFromUrl ? priceFromUrl.split("-")[0] : ""
+  );
+  const [priceRange, setPriceRange] = useState(
+    priceFromUrl ? Number(priceFromUrl.split("-")[1]) : 1000
+  );
+
+
+  // Update URL when any filter changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    if (selectedCategories.length > 0) {
+      params.set("category", selectedCategories[0]);
+    }
+    if (selectedBrands.length > 0) {
+      params.set("brand", selectedBrands[0]);
+    }
+
+    params.set("price", `${minPrice || 0}-${priceRange}`);
+
+    if (searchTerm) {
+      params.set("search", searchTerm);
+    }
+
+    router.push(`${pathname}?${params.toString()}`);
+  }, [selectedCategories, selectedBrands, priceRange, minPrice, searchTerm]);
+
+  // Filtering logic
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesCategory =
+        selectedCategories.length === 0 || selectedCategories.includes(p.category);
+
+      const matchesBrand =
+        selectedBrands.length === 0 || selectedBrands.includes(p.brand);
+
+      const min = minPrice === "" ? 0 : Number(minPrice);
+      const matchesPrice = p.price <= priceRange && p.price >= min;
+
+      return matchesSearch && matchesCategory && matchesBrand && matchesPrice;
+    });
+  }, [priceRange, minPrice, selectedCategories, selectedBrands, searchTerm]);
+
+  // Toggle helpers
+  const toggleCategory = (cat) => {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [cat]
+    );
+  };
+
+  const toggleBrand = (brand) => {
+    setSelectedBrands((prev) =>
+      prev.includes(brand) ? prev.filter((b) => b !== brand) : [brand]
+    );
+  };
+
+  return (
+    <div className="mx-6 flex">
+      <Sidebar
+        priceRange={priceRange}
+        setPriceRange={setPriceRange}
+        minPrice={minPrice}
+        setMinPrice={setMinPrice}
+        categoriesList={categoriesList}
+        selectedCategories={selectedCategories}
+        toggleCategory={toggleCategory}
+        brandsList={brandsList}
+        selectedBrands={selectedBrands}
+        toggleBrand={toggleBrand}
+      />
+      <div className="flex-grow p-4">
+        <h1 className="text-2xl font-bold mb-4">Products</h1>
+        <ProductGrid products={filteredProducts} />
+      </div>
     </div>
   );
 }
